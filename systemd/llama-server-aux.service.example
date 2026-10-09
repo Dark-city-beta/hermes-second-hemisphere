@@ -1,0 +1,34 @@
+[Unit]
+Description=llama.cpp auxiliary server for Qwen2.5 1.5B (CPU, 16k fp16 KV, compression and aux tasks)
+After=network-online.target time-sync.target
+Wants=network-online.target time-sync.target
+
+[Service]
+Type=simple
+User=your_user
+Environment="CUDA_VISIBLE_DEVICES="
+WorkingDirectory=/opt/llama.cpp
+ExecStart=/opt/llama.cpp/bin/llama-server \
+  -m /opt/models/qwen2.5-1.5b-instruct-q4_k_m.gguf \
+  -ngl 0 \
+  -t 4 \
+  --parallel 1 \
+  --port 8081 \
+  --host 127.0.0.1 \
+  -c 16384 \
+  --alias qwen2.5-1.5b-instruct-q4_k_m.gguf \
+  --jinja \
+  -fa on \
+  --slot-save-path /opt/models/slots
+Restart=always
+RestartSec=5
+TimeoutStartSec=60
+
+# Critical: cgroup memory allocations must provide headroom for KV cache and model buffers.
+# Inadequate MemoryHigh triggers heavy kernel page reclaim / swap throttling, dropping generation from 15 t/s to 0.2 t/s!
+MemoryHigh=4500M
+MemoryMax=6G
+MemorySwapMax=2G
+
+[Install]
+WantedBy=multi-user.target
